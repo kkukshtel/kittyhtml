@@ -10,7 +10,7 @@ A small Node CLI that renders an HTML string to a PNG via [DropFlow](https://git
 
 Three modules in `src/`, deliberately kept small and orthogonal:
 
-- `src/render.js` — `renderHtml(html, {width, height, scale, background}) -> Buffer`. Registers the six bundled Noto TTFs (lazy, once per process) via `flow.createFaceFromTablesSync`, parses HTML through DropFlow, lays out at huge height to measure, then re-lays out at the natural content height and paints to a `node-canvas`.
+- `src/render.js` — `renderHtml(html, {width, height, scale, background}) -> Buffer`. Wires DropFlow's `environment.registerFont` and `environment.createDecodedImage` to the `@napi-rs/canvas` backend (one-time, lazy), registers the six bundled Noto TTFs via `flow.createFaceFromTablesSync`, parses HTML through DropFlow, lays out at huge height to measure, then re-lays out at the natural content height and paints. Output is `await canvas.encode('png')`.
 - `src/protocols.js` — `encodeKitty(buf)`, `encodeIterm2(buf)`, `detectTerminal(env)`, `encode(buf, format)`. Kitty payload is chunked at 4096-byte base64 boundaries per the spec; only the first chunk carries the `a=T,f=100` keys, subsequent chunks just carry `m=1`/`m=0`.
 - `src/cli.js` — argparse + stdin/file input + `--demo` + `--out` glue. Default `--format auto` falls back to whatever `detectTerminal()` picks (Kitty for kitty/WezTerm/Ghostty, iTerm2 for iTerm.app), or errors if neither.
 
@@ -80,5 +80,5 @@ That's it. The tag push fires the workflow; no token, no OTP. For an out-of-band
 
 - Don't add `class` attributes or `<style>` blocks to HTML — DropFlow only honors inline `style`.
 - Don't reach for headless Chrome / Puppeteer — the whole value here is "no browser." If a request needs real-browser fidelity, decline and suggest a different tool.
-- Don't `npm install` extra heavyweight deps. Two dependencies (`dropflow`, `canvas`) is the budget; the tarball stays under ~100 KB.
+- Don't `npm install` extra heavyweight deps. Two dependencies (`dropflow`, `@napi-rs/canvas`) is the budget; the tarball stays under ~100 KB. We deliberately use `@napi-rs/canvas` over the legacy `canvas` package — the latter drags in 60+ transitive deps via `node-gyp`/`node-pre-gyp`, including several deprecated ones (`inflight`, `npmlog`, `rimraf@3`, `glob@7`, etc.). If something looks like it'd be easier with `canvas`, fix it on the napi-rs side instead.
 - Don't write a `NPM_TOKEN` secret into the repo or Actions — the whole publish setup is built around not needing one.

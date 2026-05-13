@@ -26,7 +26,7 @@
     "demo": "node src/cli.js --demo"
   },
   "dependencies": {
-    "canvas": "^2.11.2",
+    "@napi-rs/canvas": "^1.0.0",
     "dropflow": "^0.6.1"
   },
   "keywords": [

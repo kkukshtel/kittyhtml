@@ -1,6 +1,6 @@
 import * as flow from 'dropflow';
 import parse from 'dropflow/parse.js';
-import { createCanvas } from 'canvas';
+import { createCanvas, GlobalFonts, loadImage } from '@napi-rs/canvas';
 
 const FONTS_DIR = new URL('../assets/fonts/', import.meta.url);
 const BUNDLED_FONTS = [
@@ -12,13 +12,26 @@ const BUNDLED_FONTS = [
   'NotoSansMono-Bold.ttf',
 ];
 
-let fontsReady = false;
-function ensureFonts() {
-  if (fontsReady) return;
+let envReady = false;
+function ensureEnv() {
+  if (envReady) return;
+
+  // Tell DropFlow how to register a font and decode an image into the
+  // @napi-rs/canvas backend (default wiring in environment-node.js targets the
+  // legacy `canvas` package).
+  flow.environment.registerFont = face => {
+    const key = GlobalFonts.register(face.getBuffer(), face.uniqueFamily);
+    if (key) return () => GlobalFonts.remove(key);
+  };
+  flow.environment.createDecodedImage = async image => {
+    return await loadImage(Buffer.from(image.buffer));
+  };
+
   for (const file of BUNDLED_FONTS) {
     flow.fonts.add(flow.createFaceFromTablesSync(new URL(file, FONTS_DIR)));
   }
-  fontsReady = true;
+
+  envReady = true;
 }
 
 /**
@@ -34,7 +47,7 @@ function ensureFonts() {
  */
 export async function renderHtml(html, opts = {}) {
   const { width = 800, height = null, scale = 1, background = null } = opts;
-  ensureFonts();
+  ensureEnv();
 
   const root = parse(html);
   await flow.load(root);
@@ -60,5 +73,5 @@ export async function renderHtml(html, opts = {}) {
     ctx.fillRect(0, 0, pxWidth, pxHeight);
   }
   flow.paintToCanvas(layout, ctx);
-  return canvas.toBuffer('image/png');
+  return await canvas.encode('png');
 }

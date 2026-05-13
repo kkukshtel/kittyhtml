@@ -14,7 +14,7 @@ npm install
 npm link        # exposes the `kittyhtml` binary on your PATH
 ```
 
-Requires Node 20+. Pulls in [`canvas`](https://www.npmjs.com/package/canvas) (native build) and `dropflow`.
+Requires Node 20+. Pulls in [`@napi-rs/canvas`](https://www.npmjs.com/package/@napi-rs/canvas) (prebuilt native binary, no compile step) and `dropflow`.
 
 ## Use
 
