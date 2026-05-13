@@ -1,0 +1,29 @@
+{
+  "name": "kittyhtml",
+  "version": "0.1.0",
+  "description": "Render HTML to an image and display it inline in Kitty/iTerm2-capable terminals.",
+  "type": "module",
+  "bin": {
+    "kittyhtml": "./src/cli.js"
+  },
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./render": "./src/render.js",
+    "./protocols": "./src/protocols.js"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "demo": "node src/cli.js --demo"
+  },
+  "dependencies": {
+    "canvas": "^2.11.2",
+    "dropflow": "^0.6.1"
+  }
+}
