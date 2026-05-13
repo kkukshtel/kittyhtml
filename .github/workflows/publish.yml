@@ -20,9 +20,11 @@ jobs:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
-      # Trusted publishing via OIDC needs npm >= 11.5.1
+      # Trusted publishing via OIDC needs npm >= 11.5.1. The `--force` flag
+      # works around a known self-upgrade bug where the in-flight npm install
+      # corrupts its own module tree and crashes with MODULE_NOT_FOUND.
       - name: Upgrade npm
-        run: npm install -g npm@latest
+        run: npm install -g npm@latest --force
 
       - name: Publish
         run: npm publish --provenance --access public
