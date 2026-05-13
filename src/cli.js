@@ -80,6 +80,17 @@ function loadDemoHtml() {
   return readFileSync(join(here, '..', 'examples', 'demo.html'), 'utf8');
 }
 
+// readFileSync(0) crashes with EAGAIN when stdin is in non-blocking mode and
+// the upstream process hasn't flushed yet (common with `claude -p ... | kittyhtml`).
+// Async iteration over process.stdin yields back to the event loop and waits
+// for data, so it handles any pipe pacing correctly.
+async function readStdin() {
+  process.stdin.setEncoding('utf8');
+  let buf = '';
+  for await (const chunk of process.stdin) buf += chunk;
+  return buf;
+}
+
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
 
@@ -89,7 +100,7 @@ async function main() {
   } else if (opts.file) {
     html = readFileSync(opts.file, 'utf8');
   } else if (!process.stdin.isTTY) {
-    html = readFileSync(0, 'utf8');
+    html = await readStdin();
   } else {
     process.stdout.write(HELP);
     process.exit(1);
