@@ -45,6 +45,17 @@ const png = await renderHtml('<h1>hello</h1>', { width: 400, scale: 2 });
 process.stdout.write(encode(png, 'kitty'));
 ```
 
+## Releasing
+
+Releases publish via GitHub Actions using npm trusted publishing (OIDC, no long-lived token). To cut a release:
+
+```sh
+npm version patch    # or minor / major — bumps package.json and tags
+git push --follow-tags
+```
+
+The `Publish to npm` workflow fires on the `v*` tag, exchanges a GitHub OIDC token with npm for a one-shot publish token, and publishes with `--provenance` so each release carries a Sigstore attestation linking it back to the source commit.
+
 ## CSS caveats
 
 DropFlow implements a serious subset of CSS but isn't a browser. Things to know when writing HTML for it (as of DropFlow 0.6.x):
