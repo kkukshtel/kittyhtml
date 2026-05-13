@@ -1,12 +1,23 @@
 import * as flow from 'dropflow';
 import parse from 'dropflow/parse.js';
-import registerNotoFonts from 'dropflow/register-noto-fonts.js';
 import { createCanvas } from 'canvas';
+
+const FONTS_DIR = new URL('../assets/fonts/', import.meta.url);
+const BUNDLED_FONTS = [
+  'NotoSans-Regular.ttf',
+  'NotoSans-Bold.ttf',
+  'NotoSans-Italic.ttf',
+  'NotoSans-BoldItalic.ttf',
+  'NotoSansMono-Regular.ttf',
+  'NotoSansMono-Bold.ttf',
+];
 
 let fontsReady = false;
 function ensureFonts() {
   if (fontsReady) return;
-  registerNotoFonts();
+  for (const file of BUNDLED_FONTS) {
+    flow.fonts.add(flow.createFaceFromTablesSync(new URL(file, FONTS_DIR)));
+  }
   fontsReady = true;
 }
 
@@ -36,8 +47,6 @@ export async function renderHtml(html, opts = {}) {
     pxHeight = Math.max(1, Math.round(height * scale));
     flow.layout(layout, pxWidth, pxHeight);
   } else {
-    // Lay out at a huge height so nothing is clipped, then read the natural
-    // content height from the root border box and re-layout at that height.
     flow.layout(layout, pxWidth, 1_000_000);
     const measured = layout.getBorderArea().height;
     pxHeight = Math.max(1, Math.ceil(measured));

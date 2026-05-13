@@ -61,6 +61,17 @@ See the [DropFlow README](https://github.com/chearon/dropflow#supported-css-rule
 
 First run fetches Noto fonts from a CDN via DropFlow's bundled `register-noto-fonts.js`. Subsequent renders reuse what was loaded. Bundled offline fonts are on the roadmap.
 
+## Claude Code skill
+
+A bundled skill lets Claude Code render output as a styled inline image when you ask for it as "kittyhtml" or "khtml":
+
+```sh
+mkdir -p ~/.claude/skills
+cp -r skill/kittyhtml ~/.claude/skills/kittyhtml
+```
+
+Then in any Claude Code session: *"give me this report as kittyhtml"* — the agent will generate DropFlow-compatible HTML and pipe it through this CLI. The skill is narrow on purpose; it only triggers on those keywords.
+
 ## How agents should use it
 
 If you're an AI agent on a host with `kittyhtml` installed and the user is on a graphics-capable terminal, pipe your HTML through it instead of dumping markup as text:
