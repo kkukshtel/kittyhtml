@@ -9,12 +9,16 @@ Built for AI agents that have something nice to show you — a styled report, a 
 ## Install
 
 ```sh
-# from this directory, until published
-npm install
-npm link        # exposes the `kittyhtml` binary on your PATH
+npm install -g kittyhtml
 ```
 
-Requires Node 20+. Pulls in [`@napi-rs/canvas`](https://www.npmjs.com/package/@napi-rs/canvas) (prebuilt native binary, no compile step) and `dropflow`.
+Or one-shot, no install:
+
+```sh
+npx kittyhtml --demo
+```
+
+Requires Node 20+. Pulls in [`@napi-rs/canvas`](https://www.npmjs.com/package/@napi-rs/canvas) (prebuilt native binary, no compile step) and `dropflow`. Two deps total, ~90 KB tarball.
 
 ## Use
 
@@ -70,15 +74,15 @@ See the [DropFlow README](https://github.com/chearon/dropflow#supported-css-rule
 
 ## Fonts
 
-First run fetches Noto fonts from a CDN via DropFlow's bundled `register-noto-fonts.js`. Subsequent renders reuse what was loaded. Bundled offline fonts are on the roadmap.
+`Noto Sans` (regular, bold, italic, bold-italic) and `Noto Sans Mono` (regular, bold) ship inside the package as latin-subset TTFs (~160 KB total). No CDN fetch on first run; works offline. Reference them in HTML with `font-family: 'Noto Sans', sans-serif` and `font-family: 'Noto Sans Mono', monospace`.
 
 ## Claude Code skill
 
-A bundled skill lets Claude Code render output as a styled inline image when you ask for it as "kittyhtml" or "khtml":
+A bundled skill lets Claude Code render output as a styled inline image when you ask for it as "kittyhtml" or "khtml". After a global install:
 
 ```sh
 mkdir -p ~/.claude/skills
-cp -r skill/kittyhtml ~/.claude/skills/kittyhtml
+cp -r "$(npm root -g)/kittyhtml/skill/kittyhtml" ~/.claude/skills/
 ```
 
 Then in any Claude Code session: *"give me this report as kittyhtml"* — the agent will generate DropFlow-compatible HTML and pipe it through this CLI. The skill is narrow on purpose; it only triggers on those keywords.
