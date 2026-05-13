@@ -1,7 +1,7 @@
 {
   "name": "kittyhtml",
   "version": "0.1.0",
-  "description": "Render HTML to an image and display it inline in Kitty/iTerm2-capable terminals.",
+  "description": "Render HTML to an image and display it inline in Kitty/iTerm2-capable terminals. No browser — CSS layout via DropFlow.",
   "type": "module",
   "bin": {
     "kittyhtml": "./src/cli.js"
@@ -14,6 +14,9 @@
   },
   "files": [
     "src",
+    "assets/fonts",
+    "skill",
+    "examples/demo.html",
     "README.md"
   ],
   "engines": {
@@ -25,5 +28,29 @@
   "dependencies": {
     "canvas": "^2.11.2",
     "dropflow": "^0.6.1"
-  }
+  },
+  "keywords": [
+    "kitty",
+    "iterm2",
+    "terminal",
+    "graphics",
+    "html",
+    "css",
+    "render",
+    "dropflow",
+    "image",
+    "cli",
+    "ai-agent",
+    "claude-code"
+  ],
+  "author": "Kyle Kukshtel <kyle.kukshtel@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kkukshtel/kittyhtml.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kkukshtel/kittyhtml/issues"
+  },
+  "homepage": "https://github.com/kkukshtel/kittyhtml#readme"
 }
