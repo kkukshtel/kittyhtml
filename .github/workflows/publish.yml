@@ -15,16 +15,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Node 24 LTS ships with npm 11.x, which has OIDC trusted-publishing
+      # support built in. We don't run a `npm install -g npm@latest` upgrade
+      # step because the bundled npm in older Node 22 images shipped broken
+      # (missing transitive deps like `promise-retry`), so any install call
+      # crashed before publish could run.
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
-      # Trusted publishing via OIDC needs npm >= 11.5.1. The `--force` flag
-      # works around a known self-upgrade bug where the in-flight npm install
-      # corrupts its own module tree and crashes with MODULE_NOT_FOUND.
-      - name: Upgrade npm
-        run: npm install -g npm@latest --force
+      - name: Show npm version
+        run: npm --version
 
       - name: Publish
         run: npm publish --provenance --access public
