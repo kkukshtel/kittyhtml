@@ -38,7 +38,10 @@ jobs:
         with:
           workspaces: crates/renderer
 
-      - run: npm ci --no-audit --no-fund --omit=optional
+      # npm ci insists optionalDependencies be resolvable in the lockfile,
+      # but our optional native-platform subpackages don't exist on npm
+      # until this very workflow publishes them. Use npm install instead.
+      - run: npm install --no-audit --no-fund --no-save --omit=optional
 
       - name: Build native
         run: |
@@ -72,7 +75,10 @@ jobs:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
-      - run: npm ci --no-audit --no-fund --omit=optional
+      # npm ci insists optionalDependencies be resolvable in the lockfile,
+      # but our optional native-platform subpackages don't exist on npm
+      # until this very workflow publishes them. Use npm install instead.
+      - run: npm install --no-audit --no-fund --no-save --omit=optional
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
