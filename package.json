@@ -24,6 +24,11 @@
   "engines": {
     "node": ">=20"
   },
+  "optionalDependencies": {
+    "kittyhtml-darwin-arm64": "0.3.0",
+    "kittyhtml-darwin-x64": "0.3.0",
+    "kittyhtml-linux-x64-gnu": "0.3.0"
+  },
   "scripts": {
     "demo": "node src/cli.js --demo",
     "build": "napi build --release --platform --manifest-path crates/renderer/Cargo.toml --package-json-path package.json --output-dir crates/renderer"

@@ -2,12 +2,64 @@ name: Publish to npm
 
 on:
   push:
-    tags:
-      - 'v*'
+    tags: ['v*']
   workflow_dispatch:
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - host: macos-latest
+            target: aarch64-apple-darwin
+          - host: macos-latest
+            target: x86_64-apple-darwin
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+    name: build-${{ matrix.target }}
+    runs-on: ${{ matrix.host }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cargo cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: crates/renderer
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Build native
+        run: |
+          npx napi build \
+            --release \
+            --platform \
+            --target ${{ matrix.target }} \
+            --manifest-path crates/renderer/Cargo.toml \
+            --package-json-path package.json \
+            --output-dir crates/renderer
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bindings-${{ matrix.target }}
+          path: crates/renderer/kittyhtml-native.*.node
+          if-no-files-found: error
+
   publish:
+    name: Publish all packages
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -15,18 +67,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Node 24 LTS ships with npm 11.x, which has OIDC trusted-publishing
-      # support built in. We don't run a `npm install -g npm@latest` upgrade
-      # step because the bundled npm in older Node 22 images shipped broken
-      # (missing transitive deps like `promise-retry`), so any install call
-      # crashed before publish could run.
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Show npm version
-        run: npm --version
+      - run: npm ci --no-audit --no-fund
 
-      - name: Publish
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Move artifacts into per-platform npm dirs
+        run: |
+          npx napi artifacts \
+            --package-json-path package.json \
+            --npm-dir npm \
+            --build-output-dir crates/renderer
+
+      - name: Stamp version into per-platform package.json files
+        run: |
+          npx napi pre-publish \
+            --package-json-path package.json \
+            --npm-dir npm \
+            --skip-optional-publish
+
+      - name: Publish platform packages
+        run: |
+          set -e
+          for dir in npm/*/; do
+            echo "Publishing $dir"
+            (cd "$dir" && npm publish --provenance --access public)
+          done
+
+      - name: Publish umbrella package
         run: npm publish --provenance --access public

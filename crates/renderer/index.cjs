@@ -31,11 +31,11 @@ if (existsSync(localBinary)) {
   mod = require(localBinary);
 } else {
   try {
-    mod = require(`@kittyhtml/native-${target}`);
+    mod = require(`kittyhtml-${target}`);
   } catch (err) {
     throw new Error(
       `kittyhtml: no prebuilt native binary for ${target}. ` +
-        `Tried ${localBinary} and the @kittyhtml/native-${target} package. ` +
+        `Tried ${localBinary} and the kittyhtml-${target} package. ` +
         `If you're on an unsupported platform, please file an issue.`,
     );
   }

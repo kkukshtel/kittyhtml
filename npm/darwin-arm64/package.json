@@ -1,0 +1,43 @@
+{
+  "name": "kittyhtml-darwin-arm64",
+  "version": "0.3.0",
+  "cpu": [
+    "arm64"
+  ],
+  "main": "kittyhtml-native.darwin-arm64.node",
+  "files": [
+    "kittyhtml-native.darwin-arm64.node"
+  ],
+  "description": "Render HTML to an image and display it inline in Kitty/iTerm2-capable terminals. No browser — Rust + Blitz layout, headless CPU rasterization.",
+  "keywords": [
+    "kitty",
+    "iterm2",
+    "terminal",
+    "graphics",
+    "html",
+    "css",
+    "render",
+    "blitz",
+    "vello",
+    "image",
+    "cli",
+    "ai-agent",
+    "claude-code"
+  ],
+  "author": "Kyle Kukshtel <kyle.kukshtel@gmail.com>",
+  "homepage": "https://github.com/kkukshtel/kittyhtml#readme",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kkukshtel/kittyhtml.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kkukshtel/kittyhtml/issues"
+  },
+  "os": [
+    "darwin"
+  ]
+}
