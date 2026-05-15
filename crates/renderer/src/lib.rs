@@ -6,14 +6,45 @@
 // See README.md / CLAUDE.md for the surrounding context.
 
 use std::io::BufWriter;
+use std::sync::Arc;
+use std::sync::OnceLock;
 
 use anyrender::render_to_buffer;
 use anyrender_vello_cpu::VelloCpuImageRenderer;
-use blitz_dom::DocumentConfig;
+use blitz_dom::{DocumentConfig, FontContext};
 use blitz_html::HtmlDocument;
 use blitz_paint::paint_scene;
 use blitz_traits::shell::{ColorScheme, Viewport};
+use peniko::Blob;
 use png::{BitDepth, ColorType, Encoder};
+
+// Bundled fonts baked into the binary so output is consistent across
+// platforms (Linux CI doesn't ship Noto Sans by default; macOS has Helvetica
+// not Noto). ~160 KB total.
+const FONT_BYTES: &[&[u8]] = &[
+    include_bytes!("../../../assets/fonts/NotoSans-Regular.ttf"),
+    include_bytes!("../../../assets/fonts/NotoSans-Bold.ttf"),
+    include_bytes!("../../../assets/fonts/NotoSans-Italic.ttf"),
+    include_bytes!("../../../assets/fonts/NotoSans-BoldItalic.ttf"),
+    include_bytes!("../../../assets/fonts/NotoSansMono-Regular.ttf"),
+    include_bytes!("../../../assets/fonts/NotoSansMono-Bold.ttf"),
+];
+
+/// Lazily-constructed FontContext seeded with the bundled fonts. Cloned per
+/// render — the inner Collection/SourceCache are reference-counted internally.
+fn font_context() -> FontContext {
+    static TEMPLATE: OnceLock<FontContext> = OnceLock::new();
+    TEMPLATE
+        .get_or_init(|| {
+            let mut ctx = FontContext::new();
+            for &bytes in FONT_BYTES {
+                ctx.collection
+                    .register_fonts(Blob::new(Arc::new(bytes.to_vec())), None);
+            }
+            ctx
+        })
+        .clone()
+}
 
 /// Options accepted by `renderHtml`. CSS-px units. `scale` multiplies the
 /// canvas for retina-sharp output.
@@ -56,7 +87,7 @@ pub fn render_sync(html: &str, opts: &RenderOptions) -> Result<Vec<u8>, String> 
         DocumentConfig {
             base_url: None,
             net_provider: None,
-            font_ctx: None,
+            font_ctx: Some(font_context()),
             ..Default::default()
         },
     );

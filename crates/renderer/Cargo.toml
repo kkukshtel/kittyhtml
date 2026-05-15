@@ -23,6 +23,7 @@ blitz-paint = "0.1.0-rc.2"
 anyrender = "0.5.0"
 anyrender_vello_cpu = "0.5.1"
 png = "0.17"
+peniko = "0.4"
 tokio = { version = "1.46", features = ["rt-multi-thread", "macros"] }
 
 # napi-rs — optional so the standalone spike binary doesn't try to link

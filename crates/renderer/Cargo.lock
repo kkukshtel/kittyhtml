@@ -993,6 +993,7 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
+ "peniko",
  "png 0.17.16",
  "tokio",
 ]
