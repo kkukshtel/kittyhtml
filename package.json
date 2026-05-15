@@ -1,7 +1,7 @@
 {
   "name": "kittyhtml",
-  "version": "0.2.1",
-  "description": "Render HTML to an image and display it inline in Kitty/iTerm2-capable terminals. No browser — CSS layout via DropFlow.",
+  "version": "0.3.0",
+  "description": "Render HTML to an image and display it inline in Kitty/iTerm2-capable terminals. No browser — Rust + Blitz layout, headless CPU rasterization.",
   "type": "module",
   "bin": {
     "kittyhtml": "./src/cli.js"
@@ -14,20 +14,19 @@
   },
   "files": [
     "src",
-    "assets/fonts",
+    "crates/renderer/index.cjs",
     "skill",
     "examples/demo.html",
-    "README.md"
+    "examples/demo.png",
+    "README.md",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "demo": "node src/cli.js --demo"
-  },
-  "dependencies": {
-    "@napi-rs/canvas": "^1.0.0",
-    "dropflow": "^0.6.1"
+    "demo": "node src/cli.js --demo",
+    "build": "napi build --release --platform --manifest-path crates/renderer/Cargo.toml --package-json-path package.json --output-dir crates/renderer"
   },
   "keywords": [
     "kitty",
@@ -37,7 +36,8 @@
     "html",
     "css",
     "render",
-    "dropflow",
+    "blitz",
+    "vello",
     "image",
     "cli",
     "ai-agent",

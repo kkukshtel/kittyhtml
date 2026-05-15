@@ -2,7 +2,7 @@
 
 Render HTML to an image and display it inline in a graphics-capable terminal (Kitty, WezTerm, Ghostty, iTerm2).
 
-This is **not** a headless browser. It's a thin CLI that pipes HTML through [DropFlow](https://github.com/chearon/dropflow) (a real CSS layout engine, no JS/no Chromium) to a PNG, then emits the Kitty graphics protocol or iTerm2 inline-image protocol on stdout.
+This is **not** a headless browser. It's a thin CLI that pipes HTML through [Blitz](https://github.com/DioxusLabs/blitz) — a Rust HTML/CSS engine (Stylo + Taffy + Parley + Vello) — to a PNG, then emits the Kitty graphics protocol or iTerm2 inline-image protocol on stdout. Headless CPU rasterization, no GPU required.
 
 Built for AI agents that have something nice to show you — a styled report, a small table, a card — without taking over your screen with a browser.
 
@@ -18,7 +18,7 @@ Or one-shot, no install:
 npx kittyhtml --demo
 ```
 
-Requires Node 20+. Pulls in [`@napi-rs/canvas`](https://www.npmjs.com/package/@napi-rs/canvas) (prebuilt native binary, no compile step) and `dropflow`. Two deps total, ~90 KB tarball.
+Requires Node 20+. The native renderer ships as a prebuilt N-API binary per platform (macOS arm64, Linux x64). No Rust toolchain required at install time.
 
 ## Use
 
@@ -49,32 +49,13 @@ const png = await renderHtml('<h1>hello</h1>', { width: 400, scale: 2 });
 process.stdout.write(encode(png, 'kitty'));
 ```
 
-## Releasing
+## CSS
 
-Releases publish via GitHub Actions using npm trusted publishing (OIDC, no long-lived token). To cut a release:
-
-```sh
-npm version patch    # or minor / major — bumps package.json and tags
-git push --follow-tags
-```
-
-The `Publish to npm` workflow fires on the `v*` tag, exchanges a GitHub OIDC token with npm for a one-shot publish token, and publishes with `--provenance` so each release carries a Sigstore attestation linking it back to the source commit.
-
-## CSS caveats
-
-DropFlow implements a serious subset of CSS but isn't a browser. Things to know when writing HTML for it (as of DropFlow 0.6.x):
-
-- Use the longhand `background-color`, not the `background` shorthand.
-- `max-width` / `min-width` aren't supported yet — use `width`.
-- `list-style` markers don't render; use `&bull;` or numbers inline.
-- `border-radius`, `box-shadow`, `transform`, and `position: absolute/fixed` aren't supported yet.
-- Body background doesn't propagate to the canvas — set the background on a wrapper element, or pass `--background <css>` to fill the canvas.
-
-See the [DropFlow README](https://github.com/chearon/dropflow#supported-css-rules) for the full support matrix.
+Blitz implements a serious subset of CSS — flexbox, grid, `border-radius`, `box-shadow`, web fonts, `<img>` tags, `background:` shorthand, `max-width`, native `<ul>` bullets, the things you'd expect. It's pre-alpha for general embedding but works well for our render-once use case. The full status matrix is at [the Blitz repo](https://github.com/DioxusLabs/blitz).
 
 ## Fonts
 
-`Noto Sans` (regular, bold, italic, bold-italic) and `Noto Sans Mono` (regular, bold) ship inside the package as latin-subset TTFs (~160 KB total). No CDN fetch on first run; works offline. Reference them in HTML with `font-family: 'Noto Sans', sans-serif` and `font-family: 'Noto Sans Mono', monospace`.
+`Noto Sans` (regular, bold, italic, bold-italic) and `Noto Sans Mono` (regular, bold) are baked into the native binary as latin-subset TTFs. No system font dependency; renders identically across macOS and Linux. Reference them in HTML with `font-family: 'Noto Sans', sans-serif` and `font-family: 'Noto Sans Mono', monospace`.
 
 ## Claude Code skill
 
@@ -85,7 +66,7 @@ mkdir -p ~/.claude/skills
 cp -r "$(npm root -g)/kittyhtml/skill/kittyhtml" ~/.claude/skills/
 ```
 
-Then in any Claude Code session: *"give me this report as kittyhtml"* — the agent will generate DropFlow-compatible HTML and pipe it through this CLI. The skill is narrow on purpose; it only triggers on those keywords.
+Then in any Claude Code session: *"give me this report as kittyhtml"* — the agent will generate HTML and pipe it through this CLI. The skill is narrow on purpose; it only triggers on those keywords.
 
 ## How agents should use it
 
@@ -96,3 +77,14 @@ echo "$HTML" | kittyhtml --width 700 --scale 2
 ```
 
 The image is one frame in the scrollback — no popups, no new windows.
+
+## Releasing
+
+Releases publish via GitHub Actions using npm trusted publishing (OIDC, no long-lived token). The native binary is cross-compiled per platform and published as `@kittyhtml/native-*` packages, then the umbrella `kittyhtml` package selects the right one at install time.
+
+```sh
+npm version patch    # or minor / major — bumps package.json and tags
+git push --follow-tags
+```
+
+The `Publish to npm` workflow fires on the `v*` tag, builds the native binaries on the matrix, and publishes everything with `--provenance`.

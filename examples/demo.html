@@ -1,35 +1,48 @@
 <!DOCTYPE html>
 <html>
-<body style="font-family: 'Noto Sans', sans-serif; margin: 0; padding: 0; background-color: #f4f4f5; color: #18181b;">
-  <div style="background-color: #f4f4f5; padding: 32px 0;">
-  <div style="width: 720px; margin: 0 auto;">
+<body style="font-family: 'Noto Sans', sans-serif; margin: 0; padding: 0; background: #f4f4f5; color: #18181b;">
+  <div style="max-width: 720px; margin: 0 auto; padding: 32px 24px;">
 
-    <div style="background-color: #ffffff; border: 1px solid #e4e4e7; padding: 28px 32px;">
-      <div style="font-size: 11px; color: #71717a; font-weight: 700;">KITTYHTML &middot; DEMO</div>
-      <div style="font-size: 26px; font-weight: 700; padding-top: 6px;">HTML, in your terminal.</div>
-      <div style="font-size: 14px; color: #52525b; padding-top: 4px;">Rendered by DropFlow, displayed via the Kitty graphics protocol.</div>
+    <div style="background: #ffffff; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); padding: 32px;">
+      <div style="font-size: 11px; color: #71717a; font-weight: 700; letter-spacing: 1.2px;">KITTYHTML &middot; v0.3</div>
+      <h1 style="font-size: 28px; margin: 6px 0 4px; font-weight: 700;">HTML, in your terminal.</h1>
+      <p style="margin: 0; font-size: 14px; color: #52525b;">Rendered by Blitz, displayed via the Kitty graphics protocol.</p>
 
-      <div style="padding-top: 18px; font-size: 14px; line-height: 1.6;">
-        No Chromium, no headless browser. Just CSS layout to a PNG, base64-streamed into your terminal as one inline image. Useful when an AI agent has something to show you that reads better as a page than as plain text.
+      <p style="font-size: 14px; line-height: 1.6; margin: 20px 0 0;">
+        No Chromium, no headless browser. Just a Rust + Vello renderer producing a PNG, base64-streamed into your terminal as one inline image. Useful when an AI agent has something to show you that reads better as a page than as plain text.
+      </p>
+
+      <h2 style="font-size: 15px; margin: 24px 0 8px;">What this is good for</h2>
+      <ul style="font-size: 14px; line-height: 1.7; margin: 0; padding-left: 22px;">
+        <li>Inline reports, tables, and summaries from agents.</li>
+        <li>Quick previews of email or marketing copy.</li>
+        <li>Lightweight diagrams that compose better in HTML than ASCII.</li>
+      </ul>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 22px;">
+        <div style="background: #dbeafe; border-radius: 8px; padding: 12px 14px; font-size: 13px;">
+          <div style="font-weight: 700; font-size: 11px; color: #1e40af; letter-spacing: 0.8px;">FLEXBOX</div>
+          <div style="margin-top: 2px;">supported</div>
+        </div>
+        <div style="background: #fef3c7; border-radius: 8px; padding: 12px 14px; font-size: 13px;">
+          <div style="font-weight: 700; font-size: 11px; color: #92400e; letter-spacing: 0.8px;">GRID</div>
+          <div style="margin-top: 2px;">supported</div>
+        </div>
+        <div style="background: #d1fae5; border-radius: 8px; padding: 12px 14px; font-size: 13px;">
+          <div style="font-weight: 700; font-size: 11px; color: #065f46; letter-spacing: 0.8px;">RADIUS</div>
+          <div style="margin-top: 2px;">supported</div>
+        </div>
       </div>
 
-      <div style="font-size: 14px; font-weight: 700; padding-top: 22px; padding-bottom: 6px;">What this is good for</div>
-      <div style="font-size: 14px; line-height: 1.7; padding-left: 4px;">
-        <div>&bull;&nbsp;&nbsp;Inline reports, tables, and summaries from agents.</div>
-        <div>&bull;&nbsp;&nbsp;Quick previews of email or marketing copy.</div>
-        <div>&bull;&nbsp;&nbsp;Lightweight diagrams that compose better in HTML than in ASCII.</div>
-      </div>
-
-      <div style="margin-top: 20px; background-color: #18181b; color: #e4e4e7; padding: 14px 16px; font-family: 'Noto Sans Mono', monospace; font-size: 13px;">
+      <div style="margin-top: 22px; background: #18181b; color: #e4e4e7; padding: 14px 18px; border-radius: 10px; font-family: 'Noto Sans Mono', monospace; font-size: 13px;">
         $ echo '&lt;h1&gt;hi&lt;/h1&gt;' | kittyhtml
       </div>
 
-      <div style="font-size: 12px; color: #71717a; padding-top: 18px;">
+      <p style="font-size: 12px; color: #71717a; margin: 18px 0 0;">
         Tip: try <span style="font-family: 'Noto Sans Mono', monospace; color: #18181b;">--scale 2</span> for sharper text on high-DPI displays.
-      </div>
+      </p>
     </div>
 
-  </div>
   </div>
 </body>
 </html>

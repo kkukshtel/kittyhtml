@@ -9,9 +9,9 @@ The user has asked for output as **kittyhtml** or **khtml** — they want the re
 
 ## What to do
 
-1. **Verify the tool is installed**: `command -v kittyhtml` (one-time check per session). If missing, tell the user to run `npm install -g kittyhtml` and stop.
+1. **Verify the tool is installed**: `command -v kittyhtml`. If missing, tell the user `npm install -g kittyhtml` and stop.
 
-2. **Generate HTML** that represents the content the user asked about — a styled page, card, table, summary, or whatever fits the request. Keep it focused; the rendered image should fit on one screen.
+2. **Generate HTML** that represents the content the user asked about — a styled page, card, table, summary. Keep it focused; the rendered image should fit on one screen.
 
 3. **Pipe it through the CLI**:
    ```sh
@@ -21,33 +21,52 @@ The user has asked for output as **kittyhtml** or **khtml** — they want the re
    HTML
    ```
 
-   Use `--scale 2` for crisp text on retina/HiDPI. Use `--width 600`–`800` for content that should feel "page-sized." Use a smaller width (`--width 400`) for compact card-like output.
+   Use `--scale 2` for crisp text on retina/HiDPI. Pick width based on shape:
+   - `--width 700`–`800` for full pages and reports
+   - `--width 500` for cards and summaries
+   - `--width 400` for compact, just-a-snippet output
 
 4. After piping, write a one-line confirmation (e.g. "Rendered above."). The image is the deliverable; don't restate its contents in text.
 
-## CSS rules — DropFlow subset
+## CSS — what works
 
-DropFlow is a real CSS layout engine but it's not a browser. Stick to this subset:
+kittyhtml v0.3+ uses Blitz (Stylo + Taffy + Parley + Vello). Most modern CSS works:
 
-- **Use `background-color`, NOT the `background` shorthand.** The shorthand is silently dropped.
-- **Use `width: Npx`, NOT `max-width`.** `max-width` / `min-width` aren't implemented.
-- **No `list-style` markers.** Don't use `<ul><li>` and expect bullets. Use `<div>&bull;&nbsp;&nbsp;item</div>` or numbered prefixes.
-- **No `border-radius`, `box-shadow`, `transform`, `position: absolute/fixed`.** Square corners only. Use `border: 1px solid #color;` for definition.
-- **`<body>` background does NOT propagate to the canvas.** Wrap content in an outer `<div style="background-color: #fff; padding: ...">` to fill the image.
-- **Only inline `style` attributes work** — no `<style>` blocks, no classes.
-- **Fonts available**: `Noto Sans` (default), `Noto Sans Mono` for code.
+- Flexbox (`display: flex`, `flex: 1`, `gap`, etc.)
+- CSS Grid (`display: grid`, `grid-template-columns`, etc.)
+- `border-radius`, `box-shadow`, `opacity`
+- `max-width`, `min-width`, `width`, `height`
+- `background:` shorthand (no need for `background-color` longhand)
+- Native `<ul>` / `<ol>` bullets
+- `<img>` tags (with absolute URLs; HTTPS works)
+- `position: relative` / `absolute`
+- Web fonts via `@font-face`
+
+Inline styles only — no `<style>` blocks, no `class` selectors are honored.
+
+## Fonts
+
+Two are baked in and reliable:
+- `'Noto Sans'` (regular, bold, italic, bold-italic)
+- `'Noto Sans Mono'` for code
+
+Use them as the canonical `font-family`:
+```css
+font-family: 'Noto Sans', sans-serif;
+font-family: 'Noto Sans Mono', monospace;
+```
+
+Other fonts will fall back to system defaults or fail to render predictably.
 
 ## Template that's known to render well
 
 ```html
 <!DOCTYPE html>
 <html>
-<body style="font-family: 'Noto Sans', sans-serif; margin: 0; padding: 0; color: #18181b;">
-  <div style="background-color: #f4f4f5; padding: 24px 0;">
-    <div style="width: 640px; margin: 0 auto;">
-      <div style="background-color: #ffffff; border: 1px solid #e4e4e7; padding: 24px 28px;">
-        <!-- content here -->
-      </div>
+<body style="font-family: 'Noto Sans', sans-serif; margin: 0; padding: 0; background: #f4f4f5; color: #18181b;">
+  <div style="max-width: 720px; margin: 0 auto; padding: 32px 24px;">
+    <div style="background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); padding: 28px 32px;">
+      <!-- content here -->
     </div>
   </div>
 </body>
