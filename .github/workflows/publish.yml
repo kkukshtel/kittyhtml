@@ -92,12 +92,18 @@ jobs:
             --npm-dir npm \
             --build-output-dir crates/renderer
 
-      - name: Stamp version into per-platform package.json files
+      # We skip `napi pre-publish` because it expects a release commit
+      # (from `npm version`) and we trigger via workflow_dispatch. The
+      # per-platform package.json files already carry the umbrella's
+      # current version, stamped by `napi create-npm-dirs` at setup time.
+      - name: Verify per-platform .node files are in place
         run: |
-          npx napi pre-publish \
-            --package-json-path package.json \
-            --npm-dir npm \
-            --skip-optional-publish
+          for dir in npm/*/; do
+            target=$(basename "$dir")
+            echo "--- $target ---"
+            ls -la "$dir"
+            test -f "$dir/kittyhtml-native.$target.node" || { echo "missing native binary in $dir"; exit 1; }
+          done
 
       - name: Publish platform packages
         run: |
