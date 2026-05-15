@@ -4,3 +4,7 @@ node_modules
 out/
 *.png
 !examples/*.png
+
+# Rust
+target/
+Cargo.lock.bak
