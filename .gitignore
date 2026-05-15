@@ -8,3 +8,7 @@ out/
 # Rust
 target/
 Cargo.lock.bak
+
+# napi-rs build artifacts (per-platform, rebuilt by CI matrix)
+crates/renderer/*.node
+crates/renderer/index.d.ts

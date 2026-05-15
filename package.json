@@ -52,5 +52,16 @@
   "bugs": {
     "url": "https://github.com/kkukshtel/kittyhtml/issues"
   },
-  "homepage": "https://github.com/kkukshtel/kittyhtml#readme"
+  "homepage": "https://github.com/kkukshtel/kittyhtml#readme",
+  "devDependencies": {
+    "@napi-rs/cli": "^3.6.2"
+  },
+  "napi": {
+    "binaryName": "kittyhtml-native",
+    "targets": [
+      "x86_64-apple-darwin",
+      "aarch64-apple-darwin",
+      "x86_64-unknown-linux-gnu"
+    ]
+  }
 }

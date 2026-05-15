@@ -2,27 +2,41 @@
 name = "kittyhtml-renderer"
 version = "0.0.1"
 edition = "2024"
-description = "HTML → PNG via Blitz, headless (Vello CPU). Spike binary for kittyhtml v0.3.0."
+description = "HTML → PNG via Blitz, headless (Vello CPU). Native binding for kittyhtml."
 license = "MIT"
 publish = false
 
-[[bin]]
-name = "spike"
-path = "src/main.rs"
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+# Spike lives in `examples/spike.rs`. Examples don't build by default and
+# don't pull in the napi feature, so we can keep the spike around for
+# direct Rust debugging without breaking `napi build`.
+# Run with: cargo run --example spike --no-default-features -- in.html out.png
 
 [dependencies]
-# Pinned to the same versions himg uses, since they've already shaken out
-# combos that work together on Blitz's release candidate.
+# Blitz / rendering — pinned to the versions himg uses (release candidate).
 blitz-traits = "0.1.0-rc.2"
 blitz-dom = "0.1.0-rc.2"
 blitz-html = "0.1.0-rc.2"
 blitz-paint = "0.1.0-rc.2"
 anyrender = "0.5.0"
 anyrender_vello_cpu = "0.5.1"
-tokio = { version = "1.46", features = ["rt-multi-thread", "macros"] }
 png = "0.17"
+tokio = { version = "1.46", features = ["rt-multi-thread", "macros"] }
+
+# napi-rs — optional so the standalone spike binary doesn't try to link
+# Node's _napi_* symbols (which only exist when loaded into a Node process).
+napi = { version = "2", default-features = false, features = ["napi4", "tokio_rt", "async"], optional = true }
+napi-derive = { version = "2", optional = true }
+
+[build-dependencies]
+napi-build = "2"
+
+[features]
+default = ["napi-binding"]
+napi-binding = ["dep:napi", "dep:napi-derive"]
 
 [profile.release]
-# Spike-friendly: faster compile than the default release profile.
 opt-level = 2
 lto = false
