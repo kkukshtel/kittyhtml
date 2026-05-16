@@ -1,6 +1,6 @@
 {
   "name": "kittyhtml",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Render HTML to an image and display it inline in Kitty/iTerm2-capable terminals. No browser — Rust + Blitz layout, headless CPU rasterization.",
   "type": "module",
   "bin": {
