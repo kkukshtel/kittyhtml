@@ -92,10 +92,11 @@ jobs:
             --npm-dir npm \
             --build-output-dir crates/renderer
 
-      - name: Sync platform subpackage versions from umbrella
+      - name: Sync platform versions + umbrella's optionalDependencies
         run: |
           UMBRELLA_VERSION=$(node -p "require('./package.json').version")
           echo "umbrella version: $UMBRELLA_VERSION"
+          # Stamp each platform subpackage's version.
           for dir in npm/*/; do
             node -e "
               const fs = require('fs');
@@ -106,6 +107,19 @@ jobs:
               console.log('stamped ' + path + ' → ' + p.version);
             "
           done
+          # Stamp the umbrella's optionalDependencies → all platform packages
+          # point at the current umbrella version, so a fresh
+          # `npm install kittyhtml@X.Y.Z` resolves to matching natives.
+          node -e "
+            const fs = require('fs');
+            const p = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            const v = p.version;
+            for (const name of Object.keys(p.optionalDependencies || {})) {
+              p.optionalDependencies[name] = v;
+              console.log('optionalDep ' + name + ' → ' + v);
+            }
+            fs.writeFileSync('package.json', JSON.stringify(p, null, 2) + '\n');
+          "
 
       # We skip `napi pre-publish` because it expects a release commit
       # (from `npm version`) and we trigger via workflow_dispatch. The
