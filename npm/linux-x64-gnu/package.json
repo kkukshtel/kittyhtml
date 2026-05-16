@@ -1,6 +1,6 @@
 {
   "name": "kittyhtml-linux-x64-gnu",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "cpu": [
     "x64"
   ],
@@ -8,7 +8,7 @@
   "files": [
     "kittyhtml-native.linux-x64-gnu.node"
   ],
-  "description": "Render HTML to an image and display it inline in Kitty/iTerm2-capable terminals. No browser — Rust + Blitz layout, headless CPU rasterization.",
+  "description": "Render HTML to an image and display it inline in Kitty/iTerm2-capable terminals. No browser \u2014 Rust + Blitz layout, headless CPU rasterization.",
   "keywords": [
     "kitty",
     "iterm2",

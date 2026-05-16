@@ -92,6 +92,21 @@ jobs:
             --npm-dir npm \
             --build-output-dir crates/renderer
 
+      - name: Sync platform subpackage versions from umbrella
+        run: |
+          UMBRELLA_VERSION=$(node -p "require('./package.json').version")
+          echo "umbrella version: $UMBRELLA_VERSION"
+          for dir in npm/*/; do
+            node -e "
+              const fs = require('fs');
+              const path = '${dir}package.json';
+              const p = JSON.parse(fs.readFileSync(path, 'utf8'));
+              p.version = '$UMBRELLA_VERSION';
+              fs.writeFileSync(path, JSON.stringify(p, null, 2) + '\n');
+              console.log('stamped ' + path + ' → ' + p.version);
+            "
+          done
+
       # We skip `napi pre-publish` because it expects a release commit
       # (from `npm version`) and we trigger via workflow_dispatch. The
       # per-platform package.json files already carry the umbrella's
