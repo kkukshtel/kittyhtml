@@ -16,7 +16,8 @@ OPTIONS
   --width N         Viewport width in CSS px (default: terminal width when
                     rendered to a TTY, else 1200).
   --height N        Fixed canvas height; omit to auto-fit content.
-  --scale N         Pixel ratio for crisper output (default 1; try 2).
+  --scale N         Pixel ratio for crisper output (default: 2 when piping
+                    to a graphics-capable terminal, 1 when writing to file).
   --background CSS  Fill canvas background before painting (e.g. "#fff").
   --format FMT      Output protocol: auto | kitty | iterm2 (default auto).
   --out, -o PATH    Write PNG to PATH instead of stdout. ("-" = stdout PNG)
@@ -46,7 +47,8 @@ function parseArgs(argv) {
   const opts = {
     width: defaultWidth(),
     height: null,
-    scale: 1,
+    // null sentinel: filled in after arg parse based on output destination.
+    scale: null,
     background: null,
     format: 'auto',
     out: null,
@@ -86,6 +88,16 @@ function parseArgs(argv) {
     process.exit(2);
   }
   if (positional[0]) opts.file = positional[0];
+
+  if (opts.scale == null) {
+    // Going to a graphics-capable terminal → assume HiDPI (every modern
+    // mac and most linux laptops). The terminal will downscale the larger
+    // PNG to fill the same on-screen area, giving retina-sharp text. File
+    // output stays at 1:1 since the user knows they want the literal pixel
+    // count they asked for.
+    opts.scale = opts.out == null && process.stdout.isTTY ? 2 : 1;
+  }
+
   return opts;
 }
 
