@@ -20,11 +20,18 @@ blitz-traits = "0.1.0-rc.2"
 blitz-dom = "0.1.0-rc.2"
 blitz-html = "0.1.0-rc.2"
 blitz-paint = "0.1.0-rc.2"
+blitz-net = "0.1.0-rc.2"
 anyrender = "0.5.0"
 anyrender_vello_cpu = "0.5.1"
 png = "0.17"
 peniko = "0.4"
-tokio = { version = "1.46", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.46", features = ["rt-multi-thread", "macros", "sync", "time"] }
+# Pull vendored openssl so the Linux build doesn't need libssl-dev at runtime.
+openssl = { version = "0.10", features = ["vendored"] }
+# For fd redirection — blitz-net 0.1.0-rc.2 prints "Success {url}" to stdout
+# during fetches, which corrupts the Kitty escape sequence we write back.
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
 
 # napi-rs — optional so the standalone spike binary doesn't try to link
 # Node's _napi_* symbols (which only exist when loaded into a Node process).

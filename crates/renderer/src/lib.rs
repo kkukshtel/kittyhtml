@@ -8,6 +8,7 @@
 use std::io::BufWriter;
 use std::sync::Arc;
 use std::sync::OnceLock;
+use std::time::Duration;
 
 use anyrender::render_to_buffer;
 use anyrender_vello_cpu::VelloCpuImageRenderer;
@@ -17,6 +18,60 @@ use blitz_paint::paint_scene;
 use blitz_traits::shell::{ColorScheme, Viewport};
 use peniko::Blob;
 use png::{BitDepth, ColorType, Encoder};
+
+mod net_fetcher;
+use net_fetcher::NetFetcher;
+
+/// RAII gag for stdout. blitz-net 0.1.0-rc.2 emits `println!("Success {url}")`
+/// per successful resource fetch — harmless when writing the PNG to a file,
+/// fatal when piping the Kitty graphics escape to a terminal because the
+/// Success line precedes the binary image data on the same fd. Redirects
+/// fd 1 to /dev/null for the lifetime of the gag, restores it on drop.
+/// No-op on non-unix platforms.
+struct StdoutGag {
+    #[cfg(unix)]
+    saved: i32,
+    #[cfg(unix)]
+    null: i32,
+}
+
+impl StdoutGag {
+    fn new() -> Option<Self> {
+        #[cfg(unix)]
+        unsafe {
+            let null = libc::open(c"/dev/null".as_ptr(), libc::O_WRONLY);
+            if null < 0 {
+                return None;
+            }
+            let saved = libc::dup(1);
+            if saved < 0 {
+                libc::close(null);
+                return None;
+            }
+            if libc::dup2(null, 1) < 0 {
+                libc::close(saved);
+                libc::close(null);
+                return None;
+            }
+            Some(Self { saved, null })
+        }
+        #[cfg(not(unix))]
+        {
+            None
+        }
+    }
+}
+
+impl Drop for StdoutGag {
+    fn drop(&mut self) {
+        #[cfg(unix)]
+        unsafe {
+            libc::dup2(self.saved, 1);
+            libc::close(self.saved);
+            libc::close(self.null);
+        }
+    }
+}
 
 // Bundled fonts baked into the binary so output is consistent across
 // platforms (Linux CI doesn't ship Noto Sans by default; macOS has Helvetica
@@ -60,33 +115,39 @@ pub struct RenderOptions {
 }
 
 /// Render an HTML string to a PNG. Returns the encoded PNG bytes.
+///
+/// The render itself runs on a tokio blocking worker because `HtmlDocument`
+/// holds Stylo trait objects that are `!Send`, so its future can't move
+/// between worker threads. Inside the blocking worker we spin up a
+/// current-thread tokio runtime for blitz-net's async fetches — that
+/// runtime lives only as long as the call.
 #[cfg(feature = "napi-binding")]
 #[napi_derive::napi]
 pub async fn render_html(
     html: String,
     opts: RenderOptions,
 ) -> napi::Result<napi::bindgen_prelude::Buffer> {
-    tokio::task::spawn_blocking(move || render_sync(&html, &opts))
+    tokio::task::spawn_blocking(move || render_sync_inner(&html, &opts))
         .await
         .map_err(|e| napi::Error::from_reason(format!("join error: {e}")))?
         .map_err(|e| napi::Error::from_reason(format!("render error: {e}")))
         .map(napi::bindgen_prelude::Buffer::from)
 }
 
-/// Synchronous worker. Used directly by the spike binary and by the napi
-/// wrapper above (via `spawn_blocking`). Blitz's `resolve` + `paint_scene`
-/// are CPU-bound, so the napi side wraps this in a worker thread to avoid
-/// monopolizing the Node event loop.
-pub fn render_sync(html: &str, opts: &RenderOptions) -> Result<Vec<u8>, String> {
+/// Async render path. Fetches network resources (currently just `<img>`)
+/// before laying out, then runs the CPU-bound resolve + paint + encode work
+/// inline. Not Send — must run on a single thread (see render_sync_inner).
+async fn render_async(html: &str, opts: &RenderOptions) -> Result<Vec<u8>, String> {
     let scale = opts.scale.max(0.01);
-    let scaled_width = ((opts.width as f64) * scale).round() as u32;
-    let scaled_width = scaled_width.max(1);
+    let scaled_width = (((opts.width as f64) * scale).round() as u32).max(1);
+
+    let mut fetcher = NetFetcher::new();
 
     let mut document = HtmlDocument::from_html(
         html,
         DocumentConfig {
             base_url: None,
-            net_provider: None,
+            net_provider: Some(fetcher.provider()),
             font_ctx: Some(font_context()),
             ..Default::default()
         },
@@ -109,6 +170,22 @@ pub fn render_sync(html: &str, opts: &RenderOptions) -> Result<Vec<u8>, String> 
         scale as f32,
         ColorScheme::Light,
     ));
+
+    // Drain any `<img>` etc. that the parser flagged for fetching. Cap at
+    // 10 seconds so a slow CDN doesn't make the whole render hang — anything
+    // unresolved just paints as missing/empty, same as before this wiring.
+    // Gag stdout for the duration: blitz-net 0.1.0-rc.2 prints "Success
+    // {url}" on every successful fetch and would corrupt the Kitty graphics
+    // escape we write back.
+    {
+        let _gag = StdoutGag::new();
+        let _ = tokio::time::timeout(
+            Duration::from_secs(10),
+            fetcher.fetch_resources(&mut document),
+        )
+        .await;
+    }
+
     document.as_mut().resolve();
 
     let buffer = render_to_buffer::<VelloCpuImageRenderer, _>(
@@ -130,6 +207,22 @@ pub fn render_sync(html: &str, opts: &RenderOptions) -> Result<Vec<u8>, String> 
     };
 
     encode_png(&buffer[..(crop_h as usize) * row_bytes], scaled_width, crop_h)
+}
+
+/// Blocking entrypoint. Creates a per-call current-thread tokio runtime so
+/// blitz-net's async fetch works in any sync context (the spike binary,
+/// the napi binding's spawn_blocking worker). The runtime is dropped at the
+/// end of the call — no shared state between renders.
+pub fn render_sync(html: &str, opts: &RenderOptions) -> Result<Vec<u8>, String> {
+    render_sync_inner(html, opts)
+}
+
+fn render_sync_inner(html: &str, opts: &RenderOptions) -> Result<Vec<u8>, String> {
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(|e| format!("tokio runtime: {e}"))?;
+    rt.block_on(render_async(html, opts))
 }
 
 /// Find the last row whose pixels differ from the bottom row's fill color.

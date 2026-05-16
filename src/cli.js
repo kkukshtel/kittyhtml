@@ -13,7 +13,8 @@ USAGE
   kittyhtml --demo
 
 OPTIONS
-  --width N         Viewport width in CSS px (default 800).
+  --width N         Viewport width in CSS px (default: terminal width when
+                    rendered to a TTY, else 1200).
   --height N        Fixed canvas height; omit to auto-fit content.
   --scale N         Pixel ratio for crisper output (default 1; try 2).
   --background CSS  Fill canvas background before painting (e.g. "#fff").
@@ -28,9 +29,22 @@ EXAMPLES
   kittyhtml report.html --scale 2 -o report.png
 `;
 
+// When stdout is a terminal, estimate its visible width in pixels so the
+// rendered image fits the terminal at 1:1 instead of looking small. The
+// estimate is `columns * 9` — a rough cell-width assumption that's close
+// enough on macOS terminals at default zoom. Clamped so we don't render
+// a wallpaper for someone with a 400-column tmux pane.
+function defaultWidth() {
+  if (process.stdout.isTTY && typeof process.stdout.columns === 'number') {
+    const cols = process.stdout.columns;
+    return Math.max(400, Math.min(2400, cols * 9));
+  }
+  return 1200;
+}
+
 function parseArgs(argv) {
   const opts = {
-    width: 800,
+    width: defaultWidth(),
     height: null,
     scale: 1,
     background: null,

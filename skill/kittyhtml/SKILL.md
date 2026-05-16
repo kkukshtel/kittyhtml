@@ -5,48 +5,44 @@ description: Render output as an inline terminal image using the `kittyhtml` CLI
 
 # kittyhtml output format
 
-The user has asked for output as **kittyhtml** or **khtml** — they want the result rendered as a styled HTML page and displayed inline in their terminal as an image, via the `kittyhtml` CLI.
+The user has asked for output as **kittyhtml** or **khtml** — they want the result rendered as a styled HTML page and displayed inline in their terminal as an image.
 
 ## What to do
 
 1. **Verify the tool is installed**: `command -v kittyhtml`. If missing, tell the user `npm install -g kittyhtml` and stop.
 
-2. **Generate HTML** that represents the content the user asked about — a styled page, card, table, summary. Keep it focused; the rendered image should fit on one screen.
+2. **Generate HTML** that represents the content. Be liberal with CSS — Blitz handles flexbox, grid, `<style>` blocks, class selectors, web fonts, and `<img>` tags. Treat it like a real browser with the caveats listed below.
 
-3. **Pipe it through the CLI**:
+3. **Pipe through the CLI**:
    ```sh
-   cat <<'HTML' | kittyhtml --width 700 --scale 2
+   cat <<'HTML' | kittyhtml --scale 2
    <!DOCTYPE html>
    <html><body>...</body></html>
    HTML
    ```
 
-   Use `--scale 2` for crisp text on retina/HiDPI. Pick width based on shape:
-   - `--width 700`–`800` for full pages and reports
-   - `--width 500` for cards and summaries
-   - `--width 400` for compact, just-a-snippet output
+   Don't pass `--width` unless the user asks for a specific size — the default adapts to their terminal width. Always pass `--scale 2` for sharper text on HiDPI displays.
 
 4. After piping, write a one-line confirmation (e.g. "Rendered above."). The image is the deliverable; don't restate its contents in text.
 
 ## CSS — what works
 
-kittyhtml v0.3+ uses Blitz (Stylo + Taffy + Parley + Vello). Most modern CSS works:
+kittyhtml v0.3+ uses Blitz (Stylo + Taffy + Parley + Vello CPU). Treat it like a modern browser:
 
-- Flexbox (`display: flex`, `flex: 1`, `gap`, etc.)
-- CSS Grid (`display: grid`, `grid-template-columns`, etc.)
-- `border-radius`, `box-shadow`, `opacity`
-- `max-width`, `min-width`, `width`, `height`
-- `background:` shorthand (no need for `background-color` longhand)
-- Native `<ul>` / `<ol>` bullets
-- `<img>` tags (with absolute URLs; HTTPS works)
-- `position: relative` / `absolute`
-- Web fonts via `@font-face`
+- **Full `<style>` blocks and class selectors work.** Use them.
+- Flexbox, CSS Grid, `border-radius`, `box-shadow`, `opacity`, web fonts via `@font-face`, `<img>` tags with HTTPS URLs.
+- `max-width`, `min-width`, `width`, `height` all work in any units.
+- `<ul>` / `<ol>` render native bullets/numbers.
+- `position: relative` and (limited) `absolute`.
 
-Inline styles only — no `<style>` blocks, no `class` selectors are honored.
+## Caveats (Blitz pre-alpha)
+
+- **`<thead>` rows render the background but lose text content.** Workaround: put header rows in `<tbody>` and style the row with `font-weight: 700` instead of wrapping in `<thead>`, or apply inline `style="font-weight:700"` directly on each `<th>`.
+- **Fixed widths bigger than `--width` overflow the canvas.** Stick to percentages (`width: 100%`) or `max-width` on tables and large containers. The canvas dimension is `--width * --scale` pixels.
 
 ## Fonts
 
-Two are baked in and reliable:
+Two are baked into the binary and reliable:
 - `'Noto Sans'` (regular, bold, italic, bold-italic)
 - `'Noto Sans Mono'` for code
 
@@ -63,9 +59,14 @@ Other fonts will fall back to system defaults or fail to render predictably.
 ```html
 <!DOCTYPE html>
 <html>
-<body style="font-family: 'Noto Sans', sans-serif; margin: 0; padding: 0; background: #f4f4f5; color: #18181b;">
-  <div style="max-width: 720px; margin: 0 auto; padding: 32px 24px;">
-    <div style="background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); padding: 28px 32px;">
+<head><style>
+body { font-family: 'Noto Sans', sans-serif; margin: 0; padding: 0; background: #f4f4f5; color: #18181b; }
+.wrap { max-width: 720px; margin: 0 auto; padding: 32px 24px; }
+.card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); padding: 28px 32px; }
+</style></head>
+<body>
+  <div class="wrap">
+    <div class="card">
       <!-- content here -->
     </div>
   </div>

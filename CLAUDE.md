@@ -13,9 +13,10 @@ Pre-0.3.0 used DropFlow (JS) + @napi-rs/canvas. The migration to Blitz lifted th
 Two languages, three layers:
 
 - **`crates/renderer/`** — Rust crate built as a cdylib + rlib. `src/lib.rs` exposes one async napi function: `renderHtml(html, {width, scale, height?}) -> Buffer<PNG>`. All the real work happens here.
-  - Pinned to `blitz-{traits,dom,html,paint}@0.1.0-rc.2`, `anyrender@0.5`, `anyrender_vello_cpu@0.5.1`. The Vello-CPU backend means no GPU needed.
+  - Pinned to `blitz-{traits,dom,html,paint,net}@0.1.0-rc.2`, `anyrender@0.5`, `anyrender_vello_cpu@0.5.1`. The Vello-CPU backend means no GPU needed.
   - Six Noto TTFs are `include_bytes!`'d into the binary so output is consistent across platforms (Linux CI doesn't have Noto by default).
-  - `examples/spike.rs` is a standalone debug binary that calls the same `render_sync` core. Build with `cargo run --example spike --no-default-features -- input.html output.png`. The `--no-default-features` skips the `napi-binding` feature so the binary doesn't try to link Node's `_napi_*` symbols.
+  - `src/net_fetcher.rs` is a minimal blitz-net wrapper (pending counter + mpsc channel) adapted from himg. The render path awaits all in-flight `<img>` fetches (10s timeout) before laying out so images actually paint instead of zero-sized blanks.
+  - `examples/spike.rs` is a standalone debug binary that calls the same `render_async` core via a per-call tokio runtime. Build with `cargo run --example spike --no-default-features -- input.html output.png`. The `--no-default-features` skips the `napi-binding` feature so the binary doesn't try to link Node's `_napi_*` symbols.
 - **`crates/renderer/index.cjs`** — tiny platform-selector. Picks the right `.node` binary based on `process.platform` + `process.arch` + libc detection. Falls back to a `@kittyhtml/native-*` subpackage in production (Phase 4 wires that up); loads the local build in dev.
 - **`src/`** — Node-side JS. `render.js` is now a thin shim that lazy-requires `index.cjs` and calls the native function. `protocols.js` and `cli.js` are unchanged from the DropFlow era.
 
@@ -23,8 +24,10 @@ Two languages, three layers:
 
 ```
 HTML string
-  → HtmlDocument::from_html (DocumentConfig with bundled FontContext)
+  → NetFetcher::new()                [mpsc-backed blitz-net wrapper]
+  → HtmlDocument::from_html (DocumentConfig with bundled FontContext + provider)
   → set_viewport(scaled_w, scaled_h, scale, ColorScheme::Light)
+  → fetcher.fetch_resources(&mut doc).await    [drains <img> etc., 10s timeout]
   → document.resolve()              [style + layout]
   → anyrender::render_to_buffer::<VelloCpuImageRenderer, _>(
         |scene| paint_scene(scene, doc, scale, w, h)
