@@ -37,7 +37,7 @@ cat data.html | kittyhtml --width 1200    # explicit width
 | `--height N` | *auto-fit* | fixed canvas height |
 | `--scale N` | `2` (TTY) / `1` (file) | pixel ratio; HiDPI-default since most terminals are retina |
 | `--background CSS` | — | fill canvas before painting, e.g. `#fff` |
-| `--format auto\|kitty\|iterm2` | `auto` | output protocol; auto-detected from `$TERM`/`$TERM_PROGRAM` |
+| `--format auto\|kitty\|iterm2` | `auto` | output protocol; auto-detected from `$TERM`/`$TERM_PROGRAM` (inside tmux, from the attached client's terminal) |
 | `--out, -o PATH` | — | write PNG to file (use `-` for raw PNG on stdout) |
 | `--demo` | — | render the bundled demo page |
 
@@ -58,6 +58,7 @@ Blitz implements a serious subset of CSS: flexbox, grid, `border-radius`, `box-s
 
 - **`<thead>` content paints empty.** Use plain `<tr>` rows styled with `font-weight: 700` instead.
 - **Fixed widths larger than `--width` overflow the canvas.** Stick to `width: 100%` / `max-width` for elements that should fit.
+- **Percentage table widths resolve against the grandparent**, so a `width: 100%` table ignores its parent's padding and overflows. The CLI works around this by wrapping every `<table>` in its own `<div>` before rendering.
 
 The full status matrix lives in [the Blitz repo](https://github.com/DioxusLabs/blitz).
 
@@ -71,6 +72,22 @@ font-family: 'Noto Sans Mono', monospace;
 ```
 
 Other fonts fall back to system defaults, which on Linux CI is "nothing pretty."
+
+### CJK text
+
+Generic families (`sans-serif`, `monospace`, …) don't fall back to a CJK font, so Chinese/Japanese/Korean text would render as tofu boxes. Before rendering, the CLI splices CJK-capable system families into every `font-family` stack (`"Hiragino Sans GB", "Noto Sans CJK SC", "Microsoft YaHei", "SimHei"` — whichever is installed wins). Override the list with `KITTYHTML_CJK_FONTS`:
+
+```sh
+KITTYHTML_CJK_FONTS='"PingFang SC", "Source Han Sans SC"' kittyhtml page.html
+```
+
+## tmux
+
+Inside tmux, kittyhtml detects the outer terminal via `tmux display -p '#{client_termname}'` and sends Kitty graphics through tmux passthrough using [Unicode placeholders](https://sw.kovidgoyal.net/kitty/graphics-protocol/#unicode-placeholders), so tmux treats the image as ordinary text and it survives scrolling and redraws. Requires a terminal that supports placeholders (Kitty, Ghostty) and:
+
+```tmux
+set -g allow-passthrough on
+```
 
 ## Claude Code skill
 

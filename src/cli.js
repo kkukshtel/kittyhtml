@@ -117,6 +117,63 @@ async function readStdin() {
   return buf;
 }
 
+// The native renderer only bundles latin-subset Noto fonts and its generic
+// family fallback (sans-serif, monospace, ...) never reaches a CJK font, so
+// Chinese/Japanese/Korean text renders as tofu boxes. Named system fonts do
+// work, so splice CJK-capable families into every font stack. Override the
+// list with $KITTYHTML_CJK_FONTS (comma-separated CSS family list).
+const CJK_FONTS = process.env.KITTYHTML_CJK_FONTS ||
+  '"Hiragino Sans GB", "Noto Sans CJK SC", "Microsoft YaHei", "SimHei"';
+const GENERIC_FAMILY = /,?\s*\b(sans-serif|serif|monospace|cursive|fantasy|system-ui|ui-[a-z-]+)\s*(!important)?\s*$/i;
+
+function addCjkToStack(value, fonts = CJK_FONTS) {
+  if (/^\s*(inherit|initial|unset|revert)\s*$/i.test(value)) return value;
+  const m = value.match(GENERIC_FAMILY);
+  if (m) {
+    const head = value.slice(0, m.index).trimEnd();
+    const tail = m[0].replace(/^,?\s*/, '');
+    return `${head ? head + ', ' : ''}${fonts}, ${tail}`;
+  }
+  return value.replace(/\s*(!important)?\s*$/, (_, imp) => `, ${fonts}${imp ? ' ' + imp : ''}`);
+}
+
+// `attrQuote` is the quote char of the enclosing style="" attribute, if any;
+// the injected family names must use the other one.
+function patchCss(css, attrQuote) {
+  const fonts = attrQuote === '"' ? CJK_FONTS.replaceAll('"', "'")
+    : attrQuote === "'" ? CJK_FONTS.replaceAll("'", '"') : CJK_FONTS;
+  return css
+    .replace(/(font-family\s*:)([^;}]*)/gi, (_, prop, v) => prop + addCjkToStack(v, fonts))
+    // `font:` shorthand ends with the family list; only touch ones that
+    // actually carry a size (and therefore a family).
+    .replace(/(\bfont\s*:)([^;}]*\d(?:px|pt|em|rem|%)[^;}]*)/gi,
+      (_, prop, v) => prop + addCjkToStack(v, fonts));
+}
+
+function addCjkFallback(html) {
+  html = html.replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style>)/gi,
+    (_, open, css, close) => open + patchCss(css) + close);
+  html = html.replace(/(\sstyle\s*=\s*)(?:"([^"]*)"|'([^']*)')/gi,
+    (_, attr, dq, sq) => dq != null ? `${attr}"${patchCss(dq, '"')}"` : `${attr}'${patchCss(sq, "'")}'`);
+  // Base stack for documents that never set a font.
+  const base = `<style>:root{font-family:"Noto Sans", ${CJK_FONTS}, sans-serif}</style>`;
+  // Insert after <head>, else <html>, else the doctype, so the parser never
+  // sees content before them.
+  for (const re of [/<head\b[^>]*>/i, /<html\b[^>]*>/i, /<!doctype[^>]*>/i]) {
+    if (re.test(html)) return html.replace(re, m => m + base);
+  }
+  return base + html;
+}
+
+// Blitz resolves a table's percentage width against its grandparent instead
+// of its parent, so `width: 100%` ignores the parent's padding and overflows
+// it. Giving every table its own wrapper div makes it resolve correctly.
+function wrapTables(html) {
+  return html
+    .replace(/<table\b/gi, '<div><table')
+    .replace(/<\/table\s*>/gi, '</table></div>');
+}
+
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
 
@@ -132,7 +189,7 @@ async function main() {
     process.exit(1);
   }
 
-  const png = await renderHtml(html, opts);
+  const png = await renderHtml(wrapTables(addCjkFallback(html)), opts);
 
   if (opts.out) {
     if (opts.out === '-') {
@@ -144,7 +201,7 @@ async function main() {
     return;
   }
 
-  const encoded = encode(png, opts.format);
+  const encoded = encode(png, opts.format, { scale: opts.scale });
   if (encoded == null) {
     const term = process.env.TERM || '';
     const tp = process.env.TERM_PROGRAM || '';
